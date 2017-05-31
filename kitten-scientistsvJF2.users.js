@@ -177,13 +177,13 @@ function calculateUnicornBuild() {
   result += '<br>Rift production per second (amortized): ' + game.getDisplayValue(calculateRiftUps());
   result += '<br>Current effective unicorn production per second: ' + game.getDisplayValue(startUps);
  
-  var buildings = ['Unicorn Pasture', 'Unicorn Tomb', 'Ivory Tower', 'Ivory Citadel', 'Sky Palace', 'Unicorn Utopia'];
+  var buildings = ['Unicorn Pasture', 'Unicorn Tomb', 'Ivory Tower', 'Ivory Citadel', 'Sky Palace', 'Unicorn Utopia', 'Sunspire'];
   var tears = getTearPrices();
   var ivory = getIvoryPrices();
-  var increases = [0, 0, 0, 0, 0, 0];
+  var increases = [0, 0, 0, 0, 0, 0, 0];
   var best = 0, secondBest = 0;
-  for (var i = 0; i < 6; i++) {
-    extras = [0, 0, 0, 0, 0, 0];
+  for (var i = 0; i < 7; i++) {
+    extras = [0, 0, 0, 0, 0, 0, 0];
     extras[i] = 1;
     increases[i] = calculateEffectiveUps(extras) - startUps;
     if (tears[best] / increases[best] > tears[i] / increases[i]) {
@@ -236,9 +236,9 @@ function checkUnicornReserves(resNumber, isPasture, currUps, ivoryNeeded) {
 }
 
 function getTearPrices() {
-  var result = [0, 0, 0, 0, 0, 0];
-  var buildings = [game.bld.get('unicornPasture'), game.religion.getZU('unicornTomb'), game.religion.getZU('ivoryTower'), game.religion.getZU('ivoryCitadel'), game.religion.getZU('skyPalace'), game.religion.getZU('unicornUtopia')]
-  for (var i = 0; i < 6; i++) {
+  var result = [0, 0, 0, 0, 0, 0, 0];
+  var buildings = [game.bld.get('unicornPasture'), game.religion.getZU('unicornTomb'), game.religion.getZU('ivoryTower'), game.religion.getZU('ivoryCitadel'), game.religion.getZU('skyPalace'), game.religion.getZU('unicornUtopia'), game.religion.getZU('sunspire')]
+  for (var i = 0; i < 7; i++) {
     for (var j = 0; j < buildings[i].prices.length; j++) {
       if (buildings[i].prices[j].name == 'unicorns') {
         result[i] = calcPrice(buildings[i].prices[j].val, game.bld.getPriceRatio(buildings[i].name), buildings[i].val) / 2500 * getZiggurats();
@@ -251,9 +251,9 @@ function getTearPrices() {
 }
 
 function getIvoryPrices() {
-  var result = [0, 0, 0, 0, 0, 0];
-  var buildings = [game.bld.get('unicornPasture'), game.religion.getZU('unicornTomb'), game.religion.getZU('ivoryTower'), game.religion.getZU('ivoryCitadel'), game.religion.getZU('skyPalace'), game.religion.getZU('unicornUtopia')]
-  for (var i = 0; i < 6; i++) {
+  var result = [0, 0, 0, 0, 0, 0, 0];
+  var buildings = [game.bld.get('unicornPasture'), game.religion.getZU('unicornTomb'), game.religion.getZU('ivoryTower'), game.religion.getZU('ivoryCitadel'), game.religion.getZU('skyPalace'), game.religion.getZU('unicornUtopia'), game.religion.getZU('sunspire')]
+  for (var i = 0; i < 7; i++) {
     for (var j = 0; j < buildings[i].prices.length; j++) {
       if (buildings[i].prices[j].name == 'ivory') {
         result[i] = calcPrice(buildings[i].prices[j].val, buildings[i].priceRatio, buildings[i].val);
@@ -269,6 +269,9 @@ function calcPrice(base, ratio, num) {
   }
   return base;
 }
+function isDarkFuture() {
+	return game.calendar.year - 40000 - game.time.flux - game.getEffect("timeImpedance") >= 0;
+}
 
 function calculateBaseUps(extras) {
   extras = extras || [];
@@ -283,24 +286,29 @@ function calculateBaseUps(extras) {
   var citadels = game.religion.getZU('ivoryCitadel').val + (extras[3] || 0);
   var palaces = game.religion.getZU('skyPalace').val + (extras[4] || 0);
   var utopias = game.religion.getZU('unicornUtopia').val + (extras[5] || 0);
+  var sunspires = game.religion.getZU('sunspire').val + (extras[6] || 0);
+  
   var tombEffect = game.religion.getZU('unicornTomb').effects['unicornsRatioReligion'];
   var towerEffect = game.religion.getZU('ivoryTower').effects['unicornsRatioReligion'];
   var citadelEffect = game.religion.getZU('ivoryCitadel').effects['unicornsRatioReligion'];
   var palaceEffect = game.religion.getZU('skyPalace').effects['unicornsRatioReligion'];
   var utopiaEffect = game.religion.getZU('unicornUtopia').effects['unicornsRatioReligion'];
-  var bldEffect = 1 + tombEffect * tombs + towerEffect * towers + citadelEffect * citadels + palaceEffect * palaces + utopiaEffect * utopias;
+  var sunspireEffect = game.religion.getZU('sunspire').effects['unicornsRatioReligion'];
+  var bldEffect = 1 + tombEffect * tombs + towerEffect * towers + citadelEffect * citadels + palaceEffect * palaces + utopiaEffect * utopias + sunspireEffect*sunspires;
 
   var faithEffect = 1;
   faithEffect += game.religion.getProductionBonus() / 100;
  /*  if (game.religion.getRU("solarRevolution").researched){
     faithEffect += game.religion.getProductionBonus() / 100;
   } */
-
-  var paragonRatio = game.resPool.get("paragon").value * 0.01;
-	//OLD WAYparagonRatio = 1 + game.bld.getHyperbolicEffect(paragonRatio, 2);
-	paragonRatio = 1 + game.getHyperbolicEffect(paragonRatio, 2);
-
-  return baseUps * bldEffect * faithEffect * paragonRatio;
+  var paragonRatio = 1 + game.getEffect("paragonRatio");
+  var paragonProdRatio = game.resPool.get("paragon").value * 0.01 * paragonRatio;
+	paragonProdRatio = 1 + game.getHyperbolicEffect(paragonProdRatio, 2 * paragonRatio);
+ var BPratio = isDarkFuture() ? 4 : 1;
+ var burnedparagonRatio = game.resPool.get("burnedParagon").value * 0.01 * paragonRatio;
+  burnedparagonRatio = game.getHyperbolicEffect(burnedparagonRatio,BPratio * paragonRatio);
+  
+  return baseUps * bldEffect * faithEffect * (paragonProdRatio + burnedparagonRatio);
 
 }
 
