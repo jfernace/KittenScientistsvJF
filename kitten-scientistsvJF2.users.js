@@ -88,7 +88,7 @@ function updateCalculators() {
 function rebuildCalculatorUI() {
   var calcContainer = prepareContainer('kittenCalcs');
   calculators = [];
-  addCalculator(calcContainer, 'unicornCalc', 'Unicorn structures', '<h5>(<a href="https://www.reddit.com/r/kittensgame/comments/2iungv/turning_the_sacrificing_of_unicorns_into_an_exact/" target="_blank">Based on spreadsheet by /u/yatima2975</a>)</h5>', calculateUnicornBuild, 'unicornDetails', 'Calculation details');
+  addCalculator(calcContainer, 'unicornCalc', 'Unicorn structures', '', calculateUnicornBuild, 'unicornDetails', 'Calculation details');
   // addCalculator(calcContainer, 'buildingCalc', 'Building price calculator', buildingCalculator());
   addCalculator(calcContainer, 'mintCalc', 'Mint efficiency calculator', '', mintCalculator);
   // calculateBuildingPrice();  
@@ -278,6 +278,12 @@ function calculateBaseUps(extras) {
  //var catpowerRate = getResTick(getName('catpower')) * 5;
  //Basic way to do this: UnicornsPerTick = game.getResourcePerTick('unicorns', true);
  
+ //Need to add in the unicornSelection upgrade because it is currently not being applied
+ var unicSel = 1;
+ if (game.workshop.get('unicornSelection').researched){
+	 unicSel = 1.25;
+ }
+ 
   var pastures = game.bld.get('unicornPasture').val + (extras[0] || 0);
   var baseUps = pastures * game.bld.get('unicornPasture').effects['unicornsPerTickBase'] * game.rate;
 
@@ -308,7 +314,7 @@ function calculateBaseUps(extras) {
  var burnedparagonRatio = game.resPool.get("burnedParagon").value * 0.01 * paragonRatio;
   burnedparagonRatio = game.getHyperbolicEffect(burnedparagonRatio,BPratio * paragonRatio);
   
-  return baseUps * bldEffect * faithEffect * (paragonProdRatio + burnedparagonRatio);
+  return baseUps * unicSel * bldEffect * faithEffect * (paragonProdRatio + burnedparagonRatio);
 
 }
 
@@ -568,7 +574,7 @@ var run = function() {
     if (!game.console.filters.trade){
         game.console.filters.trade = {
             title: "Trades",
-            enabled: true,
+            enabled: false,
             unlocked: true
         };
         game.ui.renderFilters();
