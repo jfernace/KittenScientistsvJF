@@ -34,28 +34,15 @@ function prepareContainer(id) {
   return result
 }
 processAutoKittens = function() {
-  // starClick();
-  // fillTable();
   updateCalculators();
 }
 
-var gameTickFunc = gamePage.tick;
-if (gamePage.worker)
-{
-  gamePage.tick = function() {
-    dojo.hitch(gamePage, gameTickFunc)();
-    processAutoKittens();
-  }
-}
-else {
-  autoKittensTimer = setInterval(processAutoKittens, 200);
-}
+autoKittensTimer = setInterval(processAutoKittens, 200);
 
 if (!document.getElementById('timerTable')) {
   buildUI();
 }
 
-var checkInterval = 200;
 var calculators=[];
 // Calculator UI
 
@@ -563,8 +550,13 @@ var run = function() {
             resources: {
                 furs:        {stock: 1000},
                 unobtainium: {consume: 1.0}
-            }
-        }
+            },//and the comma (here)
+		//here
+		UniCalc: {
+			enabled: false
+		}
+		
+		}
     };
 
     // GameLog Modification
@@ -666,6 +658,7 @@ var run = function() {
             if (options.auto.craft.enabled) this.craft();
             if (options.auto.trade.enabled) this.trade();
             if (options.auto.hunt.enabled) this.hunt();
+			if (options.auto.UniCalc.enabled) this.UniCalc();//here
         },
         build: function () {
             var builds = options.auto.build.items;
@@ -764,6 +757,46 @@ var run = function() {
                 game.religion.praise();
             }
         },
+		UniCalc: function () {
+/////////////////////////////////////////////////------------------------------------
+			if (game.bld.get('unicornPasture').val == 0)
+				return 'You need at least one Unicorn Pasture to use this. Send off some hunters!';
+			var ziggurats = getZiggurats();
+			if (ziggurats == 0)
+				return 'You need at least one Ziggurat to use this.';
+
+			var startUps = calculateEffectiveUps();
+
+			var result = '';
+			var buildings = ['Unicorn Pasture', 'Unicorn Tomb', 'Ivory Tower', 'Ivory Citadel', 'Sky Palace', 'Unicorn Utopia', 'Sunspire'];
+			var tears = getTearPrices();
+			var ivory = getIvoryPrices();
+			var increases = [0, 0, 0, 0, 0, 0, 0];
+			var best = 0, secondBest = 0;
+			for (var i = 0; i < 7; i++) {
+				extras = [0, 0, 0, 0, 0, 0, 0];
+				extras[i] = 1;
+				increases[i] = calculateEffectiveUps(extras) - startUps;
+				if (tears[best] / increases[best] > tears[i] / increases[i]) {
+					secondBest = best;
+					best = i;
+				}
+				if (tears[secondBest] / increases[secondBest] > tears[i] / increases[i] && i != best || secondBest == best) {
+					secondBest = i;
+				}
+			}
+
+			result = '<br>' + buildings[best] + ',x ' + game.getDisplayValue((tears[secondBest] / increases[secondBest]) / (tears[best] / increases[best]));
+			result += ', ' + buildings[secondBest] '.';
+			if (best != 0) {
+				result += '<br>' + checkUnicornReserves(tears[best], false, startUps, ivory[best])
+			} else {
+				result += '<br>' + checkUnicornReserves(tears[best] / ziggurats * 2500, true, startUps, ivory[best])
+			}
+			
+			summary(result); //woot, this works!
+		},
+///////////////////////-----------------------------------------------------
         hunt: function () {
             var catpower = this.craftManager.getResource('catpower');
 
@@ -1941,7 +1974,7 @@ var run = function() {
     optionsListElement.append(getToggle('faith',    'Praising'));
     optionsListElement.append(getToggle('festival', 'Festival'));
 	// JFmodification
-	// optionsListElement.append(getToggle('calculator','Calculator'));
+	optionsListElement.append(getToggle('UniCalc','CalcUnis'));
 	// endmodification
 
     // add activity button
