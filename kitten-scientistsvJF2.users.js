@@ -167,10 +167,10 @@ function calculateUnicornBuild() {
  //Let's add in a sorrow/second calculator; Sorrow is 10k tears; Tear production/s is UnicornProd/s(/2500*NumZigs)
  //, use the startUps
  var Tearps = startUps/2500 * ziggurats;
- var Sorrowps = Tearps/10000;
+ var Sorrowps = Tearps/10000*3600;
  
- result += '<br>Effective Tears/second: ' + Tearps;
- result += '<br>Effective Sorrow/second: ' + Sorrowps;
+ result += '<br>Effective Tears/second: ' + game.getDisplayValue(Tearps);
+ result += '<br>Effective Sorrow/hour: ' + game.getDisplayValue(Sorrowps);
  
   var buildings = ['Unicorn Pasture', 'Unicorn Tomb', 'Ivory Tower', 'Ivory Citadel', 'Sky Palace', 'Unicorn Utopia', 'Sunspire'];
   var tears = getTearPrices();
