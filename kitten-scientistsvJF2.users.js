@@ -787,7 +787,7 @@ var run = function() {
 			}
 
 			result = '<br>' + buildings[best] + ',x ' + game.getDisplayValue((tears[secondBest] / increases[secondBest]) / (tears[best] / increases[best]));
-			result += ', ' + buildings[secondBest] '.';
+			result += ', ' + buildings[secondBest] + '.';
 			if (best != 0) {
 				result += '<br>' + checkUnicornReserves(tears[best], false, startUps, ivory[best])
 			} else {
