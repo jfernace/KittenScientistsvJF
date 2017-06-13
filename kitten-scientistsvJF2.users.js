@@ -214,11 +214,11 @@ function checkUnicornReserves(resNumber, isPasture, currUps, ivoryNeeded) {
   unicornsLeft = unicornsLeft - game.resPool.get('unicorns').value;
   var ivoryLeft = ivoryNeeded - game.resPool.get('ivory').value;
   if (unicornsLeft > 0) {
-    return "You need "+game.getDisplayValueExt(unicornsLeft)+" more unicorns to build this (approximately "+game.toDisplaySeconds(unicornsLeft/currUps)+").";
+    return "Need "+game.getDisplayValueExt(unicornsLeft)+" more unicorns (~ "+game.toDisplaySeconds(unicornsLeft/currUps)+").";
   } if (ivoryLeft > 0){
-    return "You have enough unicorns, but need more ivory to build this.";
+    return "Need more ivory to build this.";
   } else {
-    return "You have enough resources to build this now.";
+    return "You can build this.";
   }
 }
 
@@ -787,7 +787,7 @@ var run = function() {
 			}
 
 			result = '<br>' + buildings[best] + ',x ' + game.getDisplayValue((tears[secondBest] / increases[secondBest]) / (tears[best] / increases[best]));
-			result += ', ' + buildings[secondBest] + '.';
+			result += ',------> ' + buildings[secondBest];
 			if (best != 0) {
 				result += '<br>' + checkUnicornReserves(tears[best], false, startUps, ivory[best])
 			} else {
