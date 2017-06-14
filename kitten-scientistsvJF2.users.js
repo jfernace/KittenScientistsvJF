@@ -13,7 +13,7 @@
 // Begin Kitten Scientist's Automation Engine
 // ==========================================
 
-var version = 'Kitten Scientists version 1.3.2vJFv3';
+var version = 'Kitten Scientists version 1.3.2vJFv4';
 var address = '1AQ1AC9W5CEAPgG5739XGXC5vXqyafhoLp';
 // Game will be referenced in loadTest function
 var game = null;
@@ -76,10 +76,56 @@ function rebuildCalculatorUI() {
   var calcContainer = prepareContainer('kittenCalcs');
   calculators = [];
   addCalculator(calcContainer, 'unicornCalc', 'Unicorn structures', '', calculateUnicornBuild, 'unicornDetails', 'Calculation details');
-  // addCalculator(calcContainer, 'buildingCalc', 'Building price calculator', buildingCalculator());
+  addCalculator(calcContainer, 'ChronoResCalc', 'Chronosphere Resets Resources', '', chronoCalculator);
   addCalculator(calcContainer, 'mintCalc', 'Mint efficiency calculator', '', mintCalculator);
   // calculateBuildingPrice();  
 }
+
+// Chronosphere Reset Calculator
+
+function chronoCalculator() {
+	var saveRatio = game.bld.get("chronosphere").val > 0 ? game.getEffect("resStasisRatio") : 0; 
+	var newResources = [];
+	var ignoreResources = ["kittens", "zebras", "unicorns", "alicorn", "tears", "furs", "ivory", "spice", "karma", "necrocorn"];
+	var anachronomancy = game.prestige.getPerk("anachronomancy");
+	var fluxCondensator = game.workshop.get("fluxCondensator");
+	var resSummary = "";
+	for (var i in game.resPool.resources){
+		var res = game.resPool.resources[i];
+		if ((res.craftable && res.name != "wood" && !fluxCondensator.researched) ||
+			dojo.indexOf(ignoreResources, res.name) >= 0){
+			continue;	//>:
+		}
+		var value = 0;
+		if (res.name == "timeCrystal"){
+			if (anachronomancy.researched){
+				value = res.value;
+			}
+		} else if (res.persists){
+			value = res.value;
+		} else {
+			if (!res.craftable || res.name == "wood"){
+				value = res.value * saveRatio;
+				if (res.name == "void") {
+					value = Math.floor(value);
+				}
+			} else if (res.value > 0) {
+				value = Math.sqrt(res.value) * saveRatio * 100;
+			}
+		}
+		
+		if (value > 0){
+			var newRes = game.resPool.createResource(res.name);
+			newRes.value = value;
+			newResources.push(newRes);
+			resSummary += '<br>'+newRes.name +':'+game.getDisplayValueExt(newRes.value);
+		}
+	}
+	return resSummary;
+	//summary(resSummary)
+}
+
+
 // Mint/hunter efficiency calculator
 
 function mintCalculator() {
