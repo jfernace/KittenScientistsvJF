@@ -886,7 +886,7 @@ var run = function() {
                 var require = !trade.require ? false : craftManager.getResource(trade.require);
 				if (name === "leviathans") {
 					var requireTrigger = 0.05;
-					summary('<br>yay!')
+					//summary('<br>yay!')
 				} else {
 					var requireTrigger = options.auto.trade.trigger;
 				}
