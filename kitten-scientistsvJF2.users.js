@@ -884,7 +884,12 @@ var run = function() {
                 if (!trade[season]) continue;
 
                 var require = !trade.require ? false : craftManager.getResource(trade.require);
-                var requireTrigger = options.auto.trade.trigger;
+				if (name === "leviathans") {
+					var requireTrigger = 0.05;
+					summary('<br>yay!')
+				} else {
+					var requireTrigger = options.auto.trade.trigger;
+				}
 
                 // If we have enough to trigger the check, then attempt to trade
                 if (!require || requireTrigger <= require.value / require.maxValue) {
@@ -1167,7 +1172,7 @@ var run = function() {
         craftManager: undefined,
         manager: undefined,
         trade: function (name, amount) {
-
+			game.tabs[4].render(); // This should allow the trading to work without having to go to the tab first!
             if (!name || 1 > amount) return;
 
             var race = this.getRace(name);
@@ -1177,7 +1182,26 @@ var run = function() {
             var button = this.getTradeButton(race.title);
 
             if (!button.model.enabled || !options.auto.trade.items[name].enabled) return;
+			//for quick reference:
+			// button= game.tabs[4].racePanels[1].tradeBtn;//1 for zebras (numbers depend on the number of species that are capable of being traded with unfortunately)
+			// button= game.tabs[4].racePanels[2].tradeBtn;//for leviathans (3 species)
+			// button= game.tabs[4].racePanels[game.tabs[4].racePanels.length-1].tradeBtn;// general leviathans location
+			// Check this for leviathan trading (the button.model.enabled should give false if they are present hopefully)
+			// The racePanel doesn't update until you go to the trade screen, so you'd have to visit every time the leviathans came back. Can we render it without visiting the tab?
+			
+			// Also try
+			//to see if it updates the trade tab without having to click on it (before visiting the tab)::
 
+			//game.tabs[4].render() <--This one works!
+			
+			//Also try game.tabs[4].render
+			
+			
+			
+			
+			//game.diplomacy.get("leviathans").unlocked; will show if they arrived I think, but not if the button is available to trade
+			
+			
             game.diplomacy.tradeMultiple(race, amount);
             storeForSummary(name, amount, 'trade');
             activity('Kittens have traded ' + amount + 'x with ' + ucfirst(name), 'ks-trade');
