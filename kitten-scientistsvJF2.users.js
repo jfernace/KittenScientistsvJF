@@ -510,7 +510,8 @@ var run = function() {
                     // Dune
                     planetCracker:  {require: 'science',     enabled: false},
                     hydrofracturer: {require: 'science',     enabled: false},
-
+		    spiceRefinery:  {require: 'science',     enabled: false},
+			
                     // Piscine
                     researchVessel: {require: 'titanium',    enabled: false},
                     orbitalArray:   {require: 'eludium',     enabled: false},
