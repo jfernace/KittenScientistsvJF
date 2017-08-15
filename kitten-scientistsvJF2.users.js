@@ -4,7 +4,7 @@
 // @description Launch Kitten Scientists
 // @include     *bloodrizer.ru/games/kittens/*
 // @include     file:///*kitten-game*
-// @version     1.3.2
+// @version     1.3.3
 // @grant       none
 // @copyright   2015, cameroncondry
 // ==/UserScript==
@@ -13,7 +13,7 @@
 // Begin Kitten Scientist's Automation Engine
 // ==========================================
 
-var version = 'Kitten Scientists version 1.3.2vJFv4';
+var version = 'Kitten Scientists version 1.3.3vJFv1';
 var address = '1AQ1AC9W5CEAPgG5739XGXC5vXqyafhoLp';
 // Game will be referenced in loadTest function
 var game = null;
@@ -413,7 +413,21 @@ var run = function() {
                 // Should praising be automated?
                 enabled: true,
                 // At what percentage of the faith storage capacity should KS praise the sun?
-                trigger: 0.99
+                trigger: 0.99,
+				// Which religious upgrades should be researched?
+				items: {
+					// Order of the Sun
+					  solarchant:      {require: 'faith', enabled: true},
+ +                    scholasticism:   {require: 'faith', enabled: true},
+ +                    goldenSpire:     {require: 'faith', enabled: true},
+ +                    sunAltar:        {require: 'faith', enabled: true},
+ +                    stainedGlass:    {require: 'faith', enabled: true},
+ +                    solarRevolution: {require: 'faith', enabled: true},
+ +                    basilica:        {require: 'faith', enabled: true},
+ +                    templars:        {require: 'faith', enabled: true},
+ +                    apocripha:       {require: 'faith', enabled: false},
+ +                    transcendence:   {require: 'faith', enabled: true},
+				}
             },
             festival: {
                 // Should festivals be held automatically?
@@ -510,7 +524,7 @@ var run = function() {
                     // Dune
                     planetCracker:  {require: 'science',     enabled: false},
                     hydrofracturer: {require: 'science',     enabled: false},
-		    spiceRefinery:  {require: 'science',     enabled: false},
+					spiceRefinery:  {require: 'science',     enabled: false},
 			
                     // Piscine
                     researchVessel: {require: 'titanium',    enabled: false},
@@ -681,7 +695,8 @@ var run = function() {
         this.spaceManager = new SpaceManager();
         this.craftManager = new CraftManager();
         this.tradeManager = new TradeManager();
-        this.villageManager = new TabManager('Small village');
+        this.villageManager = new TabManager('Village');
+		this.religionManager = new ReligionManager();
     };
 
     Engine.prototype = {
@@ -690,6 +705,7 @@ var run = function() {
         craftManager: undefined,
         tradeManager: undefined,
         villageManager: undefined,
+		religionManager: undefined,
         loop: undefined,
         start: function () {
             if (this.loop) return;
@@ -706,7 +722,7 @@ var run = function() {
         },
         iterate: function () {
             this.observeStars();
-            if (options.auto.faith.enabled) this.praiseSun();
+            //if (options.auto.faith.enabled) this.praiseSun();
             if (options.auto.festival.enabled) this.holdFestival();
             if (options.auto.build.enabled) this.build();
             if (options.auto.space.enabled) this.space();
@@ -714,6 +730,7 @@ var run = function() {
             if (options.auto.trade.enabled) this.trade();
             if (options.auto.hunt.enabled) this.hunt();
 			if (options.auto.UniCalc.enabled) this.UniCalc();//here
+			if (options.auto.faith.enabled) this.worship();
         },
         build: function () {
             var builds = options.auto.build.items;
@@ -764,7 +781,7 @@ var run = function() {
                 var craft = crafts[name];
                 var current = !craft.max ? false : manager.getResource(name);
                 var require = !craft.require ? false : manager.getResource(craft.require);
-                var season = game.calendar.getCurSeason().name;
+                var season = game.calendar.season;
 
                 // Ensure that we have reached our cap
                 if (current && current.value > craft.max) continue;
@@ -787,6 +804,7 @@ var run = function() {
             }
         },
         holdFestival: function () {
+			this.villageManager.render();
             if (game.science.get('drama').researched && game.calendar.festivalDays === 0 && game.villageTab.festivalBtn.model.enabled) {
                 game.villageTab.festivalBtn.onClick();
 
@@ -803,15 +821,40 @@ var run = function() {
                 storeForSummary('stars', 1);
             }
         },
-        praiseSun: function () {
-            var faith = this.craftManager.getResource('faith');
-
-            if (options.auto.faith.trigger <= faith.value / faith.maxValue) {
-                storeForSummary('faith', faith.value);
-                activity('Praised the sun!', 'ks-praise');
-                game.religion.praise();
-            }
-        },
+		worship: function () {
+			var builds = options.auto.faith.items;
+			var buildManager = this.religionManager;
+			var craftManager = this.craftManager;
+			var trigger = options.auto.faith.trigger;
+			
+			// Render the tab to make sure that the buttons actually exist in the DOM. Otherwise we can't click them.
+			buildManager.manager.render();
+			
+			for (var name in builds) {
+				if (!builds[name].enabled) continue;
+				var build = builds[name];
+				var require = !build.require ? false : craftManager.getResource(build.require);
+				if (!require || trigger <= require.value / require.maxvalue) {
+					buildManager.build(name);
+				}
+			}
+			// Praise the sun with any faith left over
+			var faith = craftManager.getResource('faith');
+			if (options.auto.faith.trigger <= faith.value / faith.maxvalue) {
+				storeForSummary('faith',faith.value);
+				activity('Praised the sun!','ks-praise');
+				game.religion.praise();
+			}
+		},
+        //praiseSun: function () {
+           // var faith = this.craftManager.getResource('faith');
+            //if (options.auto.faith.trigger <= faith.value / faith.maxValue) {
+            //    storeForSummary('faith', faith.value);
+            //    activity('Praised the sun!', 'ks-praise');
+            //    game.religion.praise();
+            //}
+        //},
+		
 		UniCalc: function () {
 /////////////////////////////////////////////////------------------------------------
 			if (game.bld.get('unicornPasture').val == 0)
@@ -924,7 +967,7 @@ var run = function() {
     TabManager.prototype = {
         tab: undefined,
         render: function () {
-            if (this.tab && game.activeTabId !== this.tab.tabId) this.tab.render();
+            if (this.tab && game.ui.activeTabId !== this.tab.tabId) this.tab.render();
 
             return this;
         },
@@ -939,7 +982,43 @@ var run = function() {
             this.tab ? this.render() : warning('unable to find tab ' + name);
         }
     };
-
+	// Religion manager
+	// ================
+	
+	var ReligionManager = function () {
+		this.manager = new TabManager('Religion');
+		this.crafts = new CraftManager();
+	};
+	ReligionManager.prototype = {
+		manager: undefined,
+		crafts: undefined,
+		build: function (name) {
+			var build = this.getBuild(name);
+			var button = this.getBuildButton(name);
+			if (!button || ! button.model.enabled) return;
+			// need to simulate a click so the game updates everything properly
+			button.domNode.click(build);
+			storeForSummary(name, 1, 'faith');
+			activity('Kittens have discovered ' + build.label, 'ks-faith');
+		},
+		getBuild: function (name) {
+			return game.religion.getRU(name);
+		},
+		getBuildButton: function (name) { 
+			var buttons = this.manager.tab.rUpgradesButtons;
+			var build = this.getBuild(name);
+			for (var i in buttons) {
+				var haystack = buttons[i].model.name;
+				if (haystack.indexOf(build.label) !== -1) {
+					return buttons[i];
+				}
+				//if (buttons[i].name === build.label) return buttons[i];
+			}
+		}
+	};
+	
+	
+	
     // Building manager
     // ================
 
@@ -973,8 +1052,8 @@ var run = function() {
             var label = typeof stage !== 'undefined' ? build.meta.stages[stage].label : build.meta.label;
 
             for (var i in buttons) {
-                var haystack = buttons[i].buttonContent.innerText;
-                if(haystack.indexOf(label) !== -1){
+                var haystack = buttons[i].model.name;
+                if (haystack.indexOf(label) !== -1){
                     return buttons[i];
                 }
             }
@@ -2010,7 +2089,17 @@ var run = function() {
 
         return element;
     };
-
+	
+	// Grab button labels for religion options.
+	var religionManager = new ReligionManager();
+	for (var buildOption in options.auto.faith.items) {
+		var buildItem = options.auto.faith.items[buildOption];
+		var build = religionManager.getBuild(buildItem.name || buildOption);
+		if (build) {
+			options.auto.faith.items[buildOption].label = build.label;
+		}
+	}
+	
     // Grab button labels for build options
     var buildManager = new BuildManager();
     for (var buildOption in options.auto.build.items) {
@@ -2050,10 +2139,12 @@ var run = function() {
     optionsListElement.append(getToggle('craft',    'Crafting'));
     optionsListElement.append(getToggle('trade',    'Trading'));
     optionsListElement.append(getToggle('hunt',     'Hunting'));
-    optionsListElement.append(getToggle('faith',    'Praising'));
+    //optionsListElement.append(getToggle('faith',    'Praising'));
+	optionsListElement.append(getToggle('faith',    'Religion'));
     optionsListElement.append(getToggle('festival', 'Festival'));
 	// JFmodification
 	optionsListElement.append(getToggle('UniCalc','CalcUnis'));
+	
 	// endmodification
 
     // add activity button
