@@ -414,20 +414,20 @@ var run = function() {
                 enabled: true,
                 // At what percentage of the faith storage capacity should KS praise the sun?
                 trigger: 0.99,
-				// Which religious upgrades should be researched?
-				items: {
-					// Order of the Sun
-					  solarchant:      {require: 'faith', enabled: true},
- +                    scholasticism:   {require: 'faith', enabled: true},
- +                    goldenSpire:     {require: 'faith', enabled: true},
- +                    sunAltar:        {require: 'faith', enabled: true},
- +                    stainedGlass:    {require: 'faith', enabled: true},
- +                    solarRevolution: {require: 'faith', enabled: true},
- +                    basilica:        {require: 'faith', enabled: true},
- +                    templars:        {require: 'faith', enabled: true},
- +                    apocripha:       {require: 'faith', enabled: false},
- +                    transcendence:   {require: 'faith', enabled: true},
-				}
+		// Which religious upgrades should be researched?
+		items: {
+			// Order of the Sun
+			solarchant:	{require: 'faith', enabled: true},
+ +                    	scholasticism:	{require: 'faith', enabled: true},
+ +                   	goldenSpire:    {require: 'faith', enabled: true},
+ +                    	sunAltar:       {require: 'faith', enabled: true},
+ +                    	stainedGlass:   {require: 'faith', enabled: true},
+ +                    	solarRevolution:{require: 'faith', enabled: true},
+ +                    	basilica:       {require: 'faith', enabled: true},
+ +                    	templars:       {require: 'faith', enabled: true},
+ +                    	apocripha:      {require: 'faith', enabled: false},
+ +                    	transcendence:  {require: 'faith', enabled: true},
+			}
             },
             festival: {
                 // Should festivals be held automatically?
