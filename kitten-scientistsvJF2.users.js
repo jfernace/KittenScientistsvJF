@@ -418,15 +418,15 @@ var run = function() {
 		items: {
 			// Order of the Sun
 			solarchant:	{require: 'faith', enabled: true},
- +                    	scholasticism:	{require: 'faith', enabled: true},
- +                   	goldenSpire:    {require: 'faith', enabled: true},
- +                    	sunAltar:       {require: 'faith', enabled: true},
- +                    	stainedGlass:   {require: 'faith', enabled: true},
- +                    	solarRevolution:{require: 'faith', enabled: true},
- +                    	basilica:       {require: 'faith', enabled: true},
- +                    	templars:       {require: 'faith', enabled: true},
- +                    	apocripha:      {require: 'faith', enabled: false},
- +                    	transcendence:  {require: 'faith', enabled: true},
+                     	scholasticism:	{require: 'faith', enabled: true},
+                    	goldenSpire:    {require: 'faith', enabled: true},
+                     	sunAltar:       {require: 'faith', enabled: true},
+                     	stainedGlass:   {require: 'faith', enabled: true},
+                     	solarRevolution:{require: 'faith', enabled: true},
+                     	basilica:       {require: 'faith', enabled: true},
+                     	templars:       {require: 'faith', enabled: true},
+                     	apocripha:      {require: 'faith', enabled: false},
+                     	transcendence:  {require: 'faith', enabled: true},
 			}
             },
             festival: {
