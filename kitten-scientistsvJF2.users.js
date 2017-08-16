@@ -834,13 +834,13 @@ var run = function() {
 				if (!builds[name].enabled) continue;
 				var build = builds[name];
 				var require = !build.require ? false : craftManager.getResource(build.require);
-				if (!require || trigger <= require.value / require.maxvalue) {
+				if (!require || trigger <= require.value / require.maxValue) {
 					buildManager.build(name);
 				}
 			}
 			// Praise the sun with any faith left over
 			var faith = craftManager.getResource('faith');
-			if (options.auto.faith.trigger <= faith.value / faith.maxvalue) {
+			if (options.auto.faith.trigger <= faith.value / faith.maxValue) {
 				storeForSummary('faith',faith.value);
 				activity('Praised the sun!','ks-praise');
 				game.religion.praise();
