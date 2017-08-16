@@ -821,31 +821,31 @@ var run = function() {
                 storeForSummary('stars', 1);
             }
         },
-		worship: function () {
-			var builds = options.auto.faith.items;
-			var buildManager = this.religionManager;
-			var craftManager = this.craftManager;
-			var trigger = options.auto.faith.trigger;
+	worship: function () {
+		var builds = options.auto.faith.items;
+		var buildManager = this.religionManager;
+		var craftManager = this.craftManager;
+		var trigger = options.auto.faith.trigger;
 			
-			// Render the tab to make sure that the buttons actually exist in the DOM. Otherwise we can't click them.
-			buildManager.manager.render();
+		// Render the tab to make sure that the buttons actually exist in the DOM. Otherwise we can't click them.
+		buildManager.manager.render();
 			
-			for (var name in builds) {
-				if (!builds[name].enabled) continue;
-				var build = builds[name];
-				var require = !build.require ? false : craftManager.getResource(build.require);
-				if (!require || trigger <= require.value / require.maxValue) {
-					buildManager.build(name);
-				}
+		for (var name in builds) {
+			if (!builds[name].enabled) continue;
+			var build = builds[name];
+			var require = !build.require ? false : craftManager.getResource(build.require);
+			if (!require || trigger <= require.value / require.maxValue) {
+				buildManager.build(name);
 			}
-			// Praise the sun with any faith left over
-			var faith = craftManager.getResource('faith');
-			if (options.auto.faith.trigger <= faith.value / faith.maxValue) {
-				storeForSummary('faith',faith.value);
-				activity('Praised the sun!','ks-praise');
-				game.religion.praise();
-			}
-		},
+		}
+		// Praise the sun with any faith left over
+		var faith = craftManager.getResource('faith');
+		if (options.auto.faith.trigger <= faith.value / faith.maxValue) {
+			storeForSummary('faith',faith.value);
+			activity('Praised the sun!','ks-praise');
+			game.religion.praise();
+		}
+	},
         //praiseSun: function () {
            // var faith = this.craftManager.getResource('faith');
             //if (options.auto.faith.trigger <= faith.value / faith.maxValue) {
@@ -995,7 +995,7 @@ var run = function() {
 		build: function (name) {
 			var build = this.getBuild(name);
 			var button = this.getBuildButton(name);
-			if (!button || ! button.model.enabled) return;
+			if (!button || !button.model.enabled) return;
 			// need to simulate a click so the game updates everything properly
 			button.domNode.click(build);
 			storeForSummary(name, 1, 'faith');
@@ -1008,7 +1008,7 @@ var run = function() {
 			var buttons = this.manager.tab.rUpgradesButtons;
 			var build = this.getBuild(name);
 			for (var i in buttons) {
-				var haystack = buttons[i].model.name;
+				var haystack = buttons[i].model.options.name;
 				if (haystack.indexOf(build.label) !== -1) {
 					return buttons[i];
 				}
