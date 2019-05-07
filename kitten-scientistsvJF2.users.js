@@ -748,7 +748,13 @@ var run = function() {
                 var require = !build.require ? false : craftManager.getResource(build.require);
 
                 if (!require || trigger <= require.value / require.maxValue) {
-                    // If the build overrides the name, use that name instead.
+                   //verify that the building prices are within the current stock settings
+					var prices = game.bld.getPrices(build.name || name);
+					for (var p = 0; p < prices.length; p++) {
+						if (craftManager.getValueAvailable(prices[p].name, true) < prices[p].val) continue;
+					}
+			
+		    		// If the build overrides the name, use that name instead.
                     // This is usually true for buildings that can be upgraded.
                     buildManager.build(build.name || name, build.stage);
                 }
@@ -1111,12 +1117,12 @@ var run = function() {
             if (!this.canCraft(name, amount)) return;
 
             var craft = this.getCraft(name);
-            var ratio = ('wood' === name) ? 'refineRatio' : 'craftRatio';
+            var ratio = game.getResCraftRatio(craft);
 
             game.craft(craft.name, amount);
 
             // determine actual amount after crafting upgrades
-            amount = (amount * (game.getEffect(ratio) + 1)).toFixed(2);
+            amount = (amount * (ratio + 1)).toFixed(2);
 
             storeForSummary(name, amount, 'craft');
             activity('Kittens have crafted ' + game.getDisplayValueExt(amount) + ' ' + ucfirst(name), 'ks-craft');
