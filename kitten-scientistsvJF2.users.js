@@ -1055,7 +1055,14 @@ var run = function() {
             this.tab ? this.render() : warning('unable to find tab ' + name);
         }
     };
-	
+
+	// Exploration Manager
+	// ===================
+
+	var ExplorationManager = function () {
+		this.manager = new TabManager('Village');
+	};
+    
 	ExplorationManager.prototype = {
 		manager: undefined,
 		currentCheapestNode: null,
