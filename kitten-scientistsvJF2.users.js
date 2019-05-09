@@ -4,7 +4,7 @@
 // @description Launch Kitten Scientists
 // @include     *bloodrizer.ru/games/kittens/*
 // @include     file:///*kitten-game*
-// @version     1.3.3
+// @version     1.4.0
 // @grant       none
 // @copyright   2015, cameroncondry
 // ==/UserScript==
@@ -13,7 +13,7 @@
 // Begin Kitten Scientist's Automation Engine
 // ==========================================
 
-var version = 'Kitten Scientists version 1.3.3vJFv1';
+var version = 'Kitten Scientists version 1.4.0vJFv1';
 var address = '1AQ1AC9W5CEAPgG5739XGXC5vXqyafhoLp';
 // Game will be referenced in loadTest function
 var game = null;
@@ -392,7 +392,9 @@ var run = function() {
         summarycolor: '#009933', // light green
         // The color for log messages that are about activities (like festivals and star observations).
         activitycolor: '#E65C00', // orange
-
+	// The color for resources with stock counts higher than current resource max
+        stockwarncolor: '#DD1E00',
+	    
         // Should activity be logged to the game log?
         showactivity: true,
 
@@ -409,25 +411,35 @@ var run = function() {
                 // Should any automation run at all?
                 enabled: false
             },
+			crypto: {
+                // Should crypto exchange be automated?
+                enabled: false,
+                // At what percentage of the relic storage capacity should KS exchange?
+                trigger: 10000
+            },
+			explore: {
+				// Should exploring be automated?
+                enabled: false,
+			},
             faith: {
                 // Should praising be automated?
                 enabled: true,
                 // At what percentage of the faith storage capacity should KS praise the sun?
                 trigger: 0.99,
-		// Which religious upgrades should be researched?
-		items: {
-			// Order of the Sun
-			solarchant:	{require: 'faith', enabled: true},
-                     	scholasticism:	{require: 'faith', enabled: true},
-                    	goldenSpire:    {require: 'faith', enabled: true},
-                     	sunAltar:       {require: 'faith', enabled: true},
-                     	stainedGlass:   {require: 'faith', enabled: true},
-                     	solarRevolution:{require: 'faith', enabled: true},
-                     	basilica:       {require: 'faith', enabled: true},
-                     	templars:       {require: 'faith', enabled: true},
-                     	apocripha:      {require: 'faith', enabled: false},
-                     	transcendence:  {require: 'faith', enabled: true},
-			}
+			// Which religious upgrades should be researched?
+				items: {
+					// Order of the Sun
+					solarchant:	{require: 'faith', enabled: true},
+					scholasticism:	{require: 'faith', enabled: true},
+					goldenSpire:    {require: 'faith', enabled: true},
+					sunAltar:       {require: 'faith', enabled: true},
+					stainedGlass:   {require: 'faith', enabled: true},
+					solarRevolution:{require: 'faith', enabled: true},
+					basilica:       {require: 'faith', enabled: true},
+					templars:       {require: 'faith', enabled: true},
+					apocripha:      {require: 'faith', enabled: false},
+					transcendence:  {require: 'faith', enabled: true},
+					}
             },
             festival: {
                 // Should festivals be held automatically?
@@ -498,7 +510,8 @@ var run = function() {
                     unicornPasture: {require: false,         enabled: true},
                     ziggurat:       {require: false,         enabled: true},
                     chronosphere:   {require: 'unobtainium', enabled: true},
-
+					aiCore:         {require: false,         enabled: false},
+					
                     // storage
                     barn:           {require: 'wood',        enabled: true},
                     harbor:         {require: false,         enabled: false},
@@ -533,7 +546,9 @@ var run = function() {
                     // Helios
                     sunlifter:          {require: 'eludium', enabled: false},
                     containmentChamber: {require: 'science', enabled: false},
-
+                    heatsink:           {require: 'thorium', enabled: false},
+                    sunforge:           {require: false,     enabled: false},
+					
                     // T-Minus
                     cryostation:    {require: 'eludium',     enabled: false},
 
@@ -543,7 +558,13 @@ var run = function() {
                     // Yarn
                     terraformingStation: {require: 'antimatter',  enabled: false},
                     hydroponics:         {require: 'kerosene',    enabled: false},
+					
+                    // Umbra
+                    hrHarvester:    {require: 'antimatter',  enabled: false},
 
+                    // Charon
+                    entangler:    {require: 'antimatter',  enabled: false},
+					
                     // Centaurus
                     tectonic: {require: 'antimatter', enabled: false}
                 }
@@ -696,6 +717,7 @@ var run = function() {
         this.craftManager = new CraftManager();
         this.tradeManager = new TradeManager();
         this.villageManager = new TabManager('Village');
+		this.explorationManager = new ExplorationManager();
 		this.religionManager = new ReligionManager();
     };
 
@@ -705,6 +727,7 @@ var run = function() {
         craftManager: undefined,
         tradeManager: undefined,
         villageManager: undefined,
+		explorationManager: undefined,
 		religionManager: undefined,
         loop: undefined,
         start: function () {
@@ -722,7 +745,6 @@ var run = function() {
         },
         iterate: function () {
             this.observeStars();
-            //if (options.auto.faith.enabled) this.praiseSun();
             if (options.auto.festival.enabled) this.holdFestival();
             if (options.auto.build.enabled) this.build();
             if (options.auto.space.enabled) this.space();
@@ -731,7 +753,61 @@ var run = function() {
             if (options.auto.hunt.enabled) this.hunt();
 			if (options.auto.UniCalc.enabled) this.UniCalc();//here
 			if (options.auto.faith.enabled) this.worship();
+			if (options.auto.crypto.enabled) this.crypto();
+            if (options.auto.explore.enabled) this.explore();
         },
+		crypto: function () {
+            var coinPrice = game.calendar.cryptoPrice;
+            var previousRelic = game.resPool.get('relic').value;
+            var previousCoin = game.resPool.get('blackcoin').value;
+            var exchangedCoin = 0.0;
+            var exchangedRelic = 0.0;
+			var waitForBestPrice = false;
+
+            // Only exchange if it's enabled
+            if (!options.auto.crypto.enabled) return;
+
+			// Waits for coin price to drop below a certain treshold before starting the exchange process
+			if (waitForBestPrice == true && coinPrice < 860.0) { waitForBestPrice = false; }
+
+			// Exchanges up to a certain threshold, in order to keep a good exchange rate, then waits for a higher treshold before exchanging for relics.
+            if (waitForBestPrice == false && coinPrice < 950.0 && previousRelic > options.auto.crypto.trigger) {
+                var currentCoin;
+
+                game.diplomacy.buyEcoin();
+
+                currentCoin = game.resPool.get('blackcoin').value;
+                exchangedCoin = Math.round(currentCoin - previousCoin);
+                activity('Kittens sold your Relics and bought '+ exchangedCoin +' Blackcoins');
+            }
+            else if (coinPrice > 1050.0 && game.resPool.get('blackcoin').value > 0) {
+                var currentRelic;
+
+				waitForBestPrice = true;
+
+                game.diplomacy.sellEcoin();
+
+                currentRelic = game.resPool.get('blackcoin').value;
+                exchangedRelic = Math.round(currentRelic - previousRelic);
+
+                activity('Kittens sold your Blackcoins and bought '+ exchangedRelic +' Relics');
+            }
+        },		
+		explore: function () {
+			var manager = this.explorationManager;
+			var expeditionNode = game.village.map.expeditionNode;
+
+			// Only exchange if it's enabled
+            if (!options.auto.explore.enabled) return;
+
+			if( expeditionNode == null) {
+				manager.getCheapestNode();
+
+				manager.explore(manager.cheapestNodeX, manager.cheapestNodeY);
+
+				activity('Your kittens started exploring node '+ manager.cheapestNodeX +'-'+ manager.cheapestNodeY +' of the map.');
+			}
+		},		
         build: function () {
             var builds = options.auto.build.items;
             var buildManager = this.buildManager;
@@ -740,7 +816,7 @@ var run = function() {
 
             // Render the tab to make sure that the buttons actually exist in the DOM. Otherwise we can't click them.
             buildManager.manager.render();
-
+			buildLoop:
             for (var name in builds) {
                 if (!builds[name].enabled) continue;
 
@@ -751,7 +827,7 @@ var run = function() {
                    //verify that the building prices are within the current stock settings
 					var prices = game.bld.getPrices(build.name || name);
 					for (var p = 0; p < prices.length; p++) {
-						if (craftManager.getValueAvailable(prices[p].name, true) < prices[p].val) continue;
+						if (craftManager.getValueAvailable(prices[p].name, true) < prices[p].val) continue buildLoop;
 					}
 			
 		    		// If the build overrides the name, use that name instead.
@@ -797,11 +873,11 @@ var run = function() {
 
                 // Craft the resource if we meet the trigger requirement
                 if (!require || trigger <= require.value / require.maxValue) {
-                    var amount = Math.floor(manager.getLowestCraftAmount(name));
+                    var amount = manager.getLowestCraftAmount(name, craft.limited);
 
                     // Only update season if we actually craft anything.
                     if (amount > 0) {
-                        manager.craft(name, manager.getLowestCraftAmount(name));
+                        manager.craft(name, amount);
 
                         // Store the season for future reference
                         craft.lastSeason = season;
@@ -827,40 +903,31 @@ var run = function() {
                 storeForSummary('stars', 1);
             }
         },
-	worship: function () {
-		var builds = options.auto.faith.items;
-		var buildManager = this.religionManager;
-		var craftManager = this.craftManager;
-		var trigger = options.auto.faith.trigger;
-			
-		// Render the tab to make sure that the buttons actually exist in the DOM. Otherwise we can't click them.
-		buildManager.manager.render();
-			
-		for (var name in builds) {
-			if (!builds[name].enabled) continue;
-			var build = builds[name];
-			var require = !build.require ? false : craftManager.getResource(build.require);
-			if (!require || trigger <= require.value / require.maxValue) {
-				buildManager.build(name);
+		worship: function () {
+			var builds = options.auto.faith.items;
+			var buildManager = this.religionManager;
+			var craftManager = this.craftManager;
+			var trigger = options.auto.faith.trigger;
+
+			// Render the tab to make sure that the buttons actually exist in the DOM. Otherwise we can't click them.
+			buildManager.manager.render();
+
+			for (var name in builds) {
+				if (!builds[name].enabled) continue;
+				var build = builds[name];
+				var require = !build.require ? false : craftManager.getResource(build.require);
+				if (!require || trigger <= require.value / require.maxValue) {
+					buildManager.build(name);
+				}
 			}
-		}
-		// Praise the sun with any faith left over
-		var faith = craftManager.getResource('faith');
-		if (options.auto.faith.trigger <= faith.value / faith.maxValue) {
-			storeForSummary('faith',faith.value);
-			activity('Praised the sun!','ks-praise');
-			game.religion.praise();
-		}
-	},
-        //praiseSun: function () {
-           // var faith = this.craftManager.getResource('faith');
-            //if (options.auto.faith.trigger <= faith.value / faith.maxValue) {
-            //    storeForSummary('faith', faith.value);
-            //    activity('Praised the sun!', 'ks-praise');
-            //    game.religion.praise();
-            //}
-        //},
-		
+			// Praise the sun with any faith left over
+			var faith = craftManager.getResource('faith');
+			if (options.auto.faith.trigger <= faith.value / faith.maxValue) {
+				storeForSummary('faith',faith.value * (1 + game.religion.getFaithBonus()));
+				activity('Praised the sun!','ks-praise');
+				game.religion.praise();
+			}
+		},
 		UniCalc: function () {
 /////////////////////////////////////////////////------------------------------------
 			if (game.bld.get('unicornPasture').val == 0)
@@ -988,6 +1055,64 @@ var run = function() {
             this.tab ? this.render() : warning('unable to find tab ' + name);
         }
     };
+	
+	ExplorationManager.prototype = {
+		manager: undefined,
+		currentCheapestNode: null,
+		currentCheapestNodeValue: null,
+		cheapestNodeX: null,
+		cheapestNodeY: null,
+		explore: function(x, y) {
+			game.village.map.expeditionNode = {x, y};
+			game.village.map.explore(x, y);
+		},
+		getCheapestNode: function () {
+			var tileArray = game.village.map.villageData;
+			var tileKey = "";
+
+			this.currentCheapestNode = null;
+
+			for (var i in tileArray) {
+				tileKey = i;
+
+				// Discards locked nodes
+				if (i.unlocked == false) { break; }
+
+				// Discards junk nodes
+				if(tileKey.includes('-')) { break; }
+
+				// Acquire node coordinates
+				var regex = /(\d).(\d*)/g;
+				var keyMatch = regex.exec(tileKey);
+				var xCoord = parseInt(keyMatch[1]);
+				var yCoord = parseInt(keyMatch[2]);
+
+				if(this.currentCheapestNode == null) {
+					this.currentCheapestNodeValue = this.getNodeValue(xCoord, yCoord)
+					this.currentCheapestNode = i;
+					this.cheapestNodeX = xCoord;
+					this.cheapestNodeY = yCoord;
+				}
+
+				if (this.currentCheapestNode != null && this.getNodeValue(xCoord, yCoord) < this.currentCheapestNodeValue) {
+					this.currentCheapestNodeValue = this.getNodeValue(xCoord, yCoord)
+					this.currentCheapestNode = i;
+					this.cheapestNodeX = xCoord;
+					this.cheapestNodeY = yCoord;
+				}
+			}
+		},
+		getNodeValue: function (x, y){
+			var nodePrice = game.village.map.toLevel(x, y);
+			var exploreCost = game.village.map.getExplorationPrice(x,y);
+
+			var tileValue = nodePrice / exploreCost;
+
+			return tileValue;
+		}
+	};
+	
+	
 	// Religion manager
 	// ================
 	
@@ -1014,7 +1139,7 @@ var run = function() {
 			var buttons = this.manager.tab.rUpgradesButtons;
 			var build = this.getBuild(name);
 			for (var i in buttons) {
-				var haystack = buttons[i].model.options.name;
+				var haystack = buttons[i].model.name;//buttons[i].model.options.name
 				if (haystack.indexOf(build.label) !== -1) {
 					return buttons[i];
 				}
@@ -1151,7 +1276,7 @@ var run = function() {
             return game.workshop.getCraft(this.getName(name));
         },
         getLowestCraftAmount: function (name) {
-            var amount = undefined;
+            var amount = Number.MAX_VALUE;
             var materials = this.getMaterials(name);
 
             // Safeguard if materials for craft cannot be determined.
@@ -1160,9 +1285,18 @@ var run = function() {
             var res = this.getResource(name);
 
             for (var i in materials) {
-                var total = this.getValueAvailable(i) / materials[i];
-
-                amount = (amount === undefined || total < amount) ? total : amount;
+				var delta = undefined;
+				if (this.getResource(i).maxValue > 0 || ! limited) {
+					// If there is a storage limit, we can just use everything returned by getValueAvailable, since the regulation happens there
+                    delta = this.getValueAvailable(i) / materials[i];
+				} else {
+					// Take the currently present amount of material to craft into account
+                    // Only craft "half" (TODO: document this behaviour)
+                    delta = (this.getValueAvailable(i) - materials[i] * this.getValueAvailable(res.name)) / (2 * materials[i]);
+                }	
+                //var total = this.getValueAvailable(i) / materials[i];
+                //amount = (amount === undefined || total < amount) ? total : amount;
+				amount = Math.min(delta, amount);
             }
 
             // If we have a maximum value, ensure that we don't produce more than
@@ -1172,7 +1306,7 @@ var run = function() {
             if (res.maxValue > 0 && amount > (res.maxValue - res.value))
                 amount = res.maxValue - res.value;
 
-            return amount;
+            return Math.floor(amount);
         },
         getMaterials: function (name) {
             var materials = {};
@@ -1464,6 +1598,17 @@ var run = function() {
             + 'margin: 0 5px 7px 0;'
             + 'width: 290px;'
             + '}');
+		
+		addRule('#game .map-viewport {'
+            + 'height: 340px;'
+            + 'max-width: 500px;'
+            + 'overflow: visible;'
+            + '}');
+
+        addRule('#game .map-dashboard {'
+            + 'height: 120px;'
+            + 'width: 292px;'
+            + '}');
 			// JFModification
     } else {
 		addRule('#resContainer .maxRes {'
@@ -1491,6 +1636,10 @@ var run = function() {
         + 'width: 100%;'
         + '}');
 
+	addRule('#ks-options #toggle-list-resources .stockWarn {'
+        + 'color: ' + options.stockwarncolor + ';'
+        + '}');
+	
     // Local Storage
     // =============
 
@@ -1519,6 +1668,8 @@ var run = function() {
             build: options.auto.build.trigger,
             space: options.auto.space.trigger,
             craft: options.auto.craft.trigger,
+			crypto: options.auto.crypto.trigger,
+            explore: options.auto.explore.trigger,
             trade: options.auto.trade.trigger//, //JFmod added comma...
 			// JFmodification
 			// calculator: options.auto.calculator.trigger
@@ -1573,6 +1724,8 @@ var run = function() {
                 options.auto.space.trigger = saved.triggers.space;
                 options.auto.craft.trigger = saved.triggers.craft;
                 options.auto.trade.trigger = saved.triggers.trade;
+				options.auto.crypto.trigger = saved.triggers.crypto;
+                options.auto.explore.trigger = saved.triggers.explore;
 				// JFModification
 				// options.auto.calculator.trigger = saved.triggers.calculator;
 				// $('#trigger-calculator')[0].title = options.auto.calculator.trigger;
@@ -1584,6 +1737,7 @@ var run = function() {
                 $('#trigger-space')[0].title = options.auto.space.trigger;
                 $('#trigger-craft')[0].title = options.auto.craft.trigger;
                 $('#trigger-trade')[0].title = options.auto.trade.trigger;
+				$('#trigger-crypto')[0].title = options.auto.crypto.trigger;
             }
 
         } else {
@@ -1602,6 +1756,15 @@ var run = function() {
         return +(Math.round(n + "e+2") + "e-2")
     };
 
+    var setStockWarning = function(name, value) {
+        // simplest way to ensure it doesn't stick around too often; always do 
+        // a remove first then re-add only if needed
+        $("#resource-" + name).removeClass("stockWarn");
+
+        var maxValue = game.resPool.resources.filter(i => i.name == name)[0].maxValue;
+        if (value > maxValue && !(maxValue === 0)) $("#resource-" + name).addClass("stockWarn");
+    }
+	
     var setStockValue = function (name, value) {
         var n = Number(value);
 
@@ -1613,6 +1776,8 @@ var run = function() {
         if (!options.auto.resources[name]) options.auto.resources[name] = {};
         options.auto.resources[name].stock = n;
         $('#stock-value-' + name).text('Stock: ' + game.getDisplayValueExt(n));
+		
+		setStockWarning(name, n)
     };
 
     var setConsumeRate = function (name, value) {
@@ -1671,7 +1836,9 @@ var run = function() {
         });
 
         container.append(label, stock, consume, del);
-
+		
+		if (res != undefined && res.stock != undefined) setStockWarning(name, res.stock);
+		
         stock.on('click', function () {
             var value = window.prompt('Stock for ' + ucfirst(title ? title : name));
             if (value !== null) {
@@ -1944,8 +2111,12 @@ var run = function() {
             });
 
             triggerButton.on('click', function () {
-                var value = window.prompt('Enter a new trigger value for ' + text + '. Should be in the range of 0 to 1.', auto.trigger);
-                if (value !== null) {
+				var value;
+				if (
+                if (text == 'Crypto'){value = window.prompt('Enter a new trigger value for ' + text + '. Corresponds to the amount of Relics needed before the exchange is made.', auto.trigger);}
+                else{value = window.prompt('Enter a new trigger value for ' + text + '. Should be in the range of 0 to 1.', auto.trigger);}
+
+				if (value !== null) {
                     auto.trigger = parseFloat(value);
                     saveToKittenStorage();
                     triggerButton[0].title = auto.trigger;
@@ -2145,9 +2316,10 @@ var run = function() {
     optionsListElement.append(getToggle('craft',    'Crafting'));
     optionsListElement.append(getToggle('trade',    'Trading'));
     optionsListElement.append(getToggle('hunt',     'Hunting'));
-    //optionsListElement.append(getToggle('faith',    'Praising'));
 	optionsListElement.append(getToggle('faith',    'Religion'));
     optionsListElement.append(getToggle('festival', 'Festival'));
+	optionsListElement.append(getToggle('crypto',   'Crypto'));
+    optionsListElement.append(getToggle('explore',  'Explore'));
 	// JFmodification
 	optionsListElement.append(getToggle('UniCalc','CalcUnis'));
 	
