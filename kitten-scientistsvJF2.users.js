@@ -1282,7 +1282,7 @@ var run = function() {
         getCraft: function (name) {
             return game.workshop.getCraft(this.getName(name));
         },
-        getLowestCraftAmount: function (name) {
+        getLowestCraftAmount: function (name, limited) {
             var amount = Number.MAX_VALUE;
             var materials = this.getMaterials(name);
 
